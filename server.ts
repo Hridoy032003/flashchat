@@ -128,6 +128,21 @@ app.prepare().then(() => {
       }
     });
 
+    // Handle typing indicators
+    socket.on('typing-start', () => {
+      const targetId = connectedPairs.get(socket.id);
+      if (targetId) {
+        io.to(targetId).emit('typing-start');
+      }
+    });
+
+    socket.on('typing-stop', () => {
+      const targetId = connectedPairs.get(socket.id);
+      if (targetId) {
+        io.to(targetId).emit('typing-stop');
+      }
+    });
+
     // Handle skip/disconnect
     socket.on('skip', () => {
       handleDisconnect(socket);

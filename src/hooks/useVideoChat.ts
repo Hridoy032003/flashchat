@@ -24,10 +24,12 @@ export const useVideoChat = () => {
   const [remoteAudioLevel, setRemoteAudioLevel] = useState(0);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [remoteSpeaking, setRemoteSpeaking] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const peerRef = useRef<SimplePeer.Instance | null>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const localAnalyserRef = useRef<AnalyserNode | null>(null);
   const remoteAnalyserRef = useRef<AnalyserNode | null>(null);
   const localAnimationRef = useRef<number | null>(null);
@@ -116,21 +118,22 @@ export const useVideoChat = () => {
     if (!socket || !localStream) return;
 
     socket.on('waiting', () => {
-      console.log('Waiting for a peer...');
+      console.log('⏳ Waiting for a peer...');
       setIsWaiting(true);
       setIsConnected(false);
     });
 
     socket.on('room-waiting', ({ roomId }: { roomId: string }) => {
-      console.log('Waiting in room:', roomId);
+      console.log('🚪⏳ Waiting in room:', roomId);
       setCurrentRoomId(roomId);
       setIsWaiting(true);
       setIsConnected(false);
     });
 
     socket.on('peer-matched', ({ peerId, initiator, roomId }: { peerId: string; initiator: boolean; roomId?: string }) => {
-      console.log('Matched with peer:', peerId, 'Initiator:', initiator);
+      console.log('✅ Matched with peer:', peerId, 'Initiator:', initiator);
       if (roomId) {
+        console.log('📍 Room ID:', roomId);
         setCurrentRoomId(roomId);
       }
       setIsWaiting(false);
@@ -138,8 +141,11 @@ export const useVideoChat = () => {
     });
 
     socket.on('signal', ({ signal }: { signal: SimplePeer.SignalData }) => {
+      console.log('📡 Received signal:', signal.type);
       if (peerRef.current) {
         peerRef.current.signal(signal);
+      } else {
+        console.error('❌ Cannot process signal: no peer connection');
       }
     });
 
@@ -149,6 +155,16 @@ export const useVideoChat = () => {
         sender: 'stranger',
         timestamp: new Date()
       }]);
+    });
+
+    socket.on('typing-start', () => {
+      console.log('👤 Stranger is typing...');
+      setIsTyping(true);
+    });
+
+    socket.on('typing-stop', () => {
+      console.log('👤 Stranger stopped typing');
+      setIsTyping(false);
     });
 
     socket.on('peer-disconnected', () => {
@@ -165,6 +181,8 @@ export const useVideoChat = () => {
       socket.off('peer-matched');
       socket.off('signal');
       socket.off('chat-message');
+      socket.off('typing-start');
+      socket.off('typing-stop');
       socket.off('peer-disconnected');
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -236,7 +254,15 @@ export const useVideoChat = () => {
   }, []);
 
   const createPeerConnection = (initiator: boolean) => {
-    if (!localStream) return;
+    if (!localStream) {
+      console.error('❌ No local stream available for peer connection');
+      toast.error("Camera/Mic not ready", {
+        description: "Please allow access and refresh",
+      });
+      return;
+    }
+
+    console.log('🔗 Creating peer connection as', initiator ? 'INITIATOR' : 'RECEIVER');
 
     const newPeer = new SimplePeer({
       initiator,
@@ -251,15 +277,17 @@ export const useVideoChat = () => {
     });
 
     newPeer.on('signal', (signal: SimplePeer.SignalData) => {
+      console.log('📡 Sending signal:', signal.type);
       socket?.emit('signal', { signal });
     });
 
     newPeer.on('stream', (stream: MediaStream) => {
-      console.log('Received remote stream');
+      console.log('🎥 Received remote stream');
       
       // Check if remote stream has video
       const hasVideo = stream.getVideoTracks().length > 0 && stream.getVideoTracks()[0].enabled;
       setRemoteIsAudioOnly(!hasVideo);
+      console.log('Remote stream has video:', hasVideo);
       
       if (remoteVideoRef.current) {
         remoteVideoRef.current.srcObject = stream;
@@ -272,16 +300,19 @@ export const useVideoChat = () => {
     });
 
     newPeer.on('connect', () => {
-      console.log('Peer connection established');
+      console.log('✅ Peer connection established');
       setIsConnected(true);
     });
 
     newPeer.on('error', (err: Error) => {
-      console.error('Peer connection error:', err);
+      console.error('❌ Peer connection error:', err);
+      toast.error("Connection failed", {
+        description: err.message || "Could not establish video connection",
+      });
     });
 
     newPeer.on('close', () => {
-      console.log('Peer connection closed');
+      console.log('🔌 Peer connection closed');
       handleCleanup();
     });
 
@@ -290,18 +321,36 @@ export const useVideoChat = () => {
 
   const findPeer = useCallback(() => {
     if (socket) {
+      console.log('🔍 Finding peer...');
       handleCleanup();
       setMessages([]);
       setCurrentRoomId(null);
       socket.emit('find-peer');
+      toast.info("Searching...", {
+        description: "Looking for someone to chat with",
+      });
+    } else {
+      console.error('❌ Socket not connected');
+      toast.error("Connection error", {
+        description: "Please refresh the page and try again",
+      });
     }
   }, [socket]);
 
   const joinRoom = useCallback((roomId: string) => {
     if (socket && roomId.trim()) {
+      console.log('🚪 Joining room:', roomId);
       handleCleanup();
       setMessages([]);
       socket.emit('join-room', roomId.trim());
+      toast.info("Joining room...", {
+        description: `Room ID: ${roomId}`,
+      });
+    } else if (!socket) {
+      console.error('❌ Socket not connected');
+      toast.error("Connection error", {
+        description: "Please refresh the page and try again",
+      });
     }
   }, [socket]);
 
@@ -391,6 +440,32 @@ export const useVideoChat = () => {
     return false;
   }, [localStream]);
 
+  const notifyTyping = useCallback(() => {
+    if (socket && isConnected) {
+      socket.emit('typing-start');
+      
+      // Clear existing timeout
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      
+      // Set timeout to emit typing-stop after 2 seconds of inactivity
+      typingTimeoutRef.current = setTimeout(() => {
+        socket.emit('typing-stop');
+      }, 2000);
+    }
+  }, [socket, isConnected]);
+
+  const stopTyping = useCallback(() => {
+    if (socket && isConnected) {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
+      }
+      socket.emit('typing-stop');
+    }
+  }, [socket, isConnected]);
+
   return {
     localVideoRef,
     remoteVideoRef,
@@ -410,6 +485,9 @@ export const useVideoChat = () => {
     localAudioLevel,
     remoteAudioLevel,
     isSpeaking,
-    remoteSpeaking
+    remoteSpeaking,
+    isTyping,
+    notifyTyping,
+    stopTyping
   };
 };

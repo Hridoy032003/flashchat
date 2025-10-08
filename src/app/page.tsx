@@ -25,6 +25,9 @@ export default function Home() {
     remoteAudioLevel,
     isSpeaking,
     remoteSpeaking,
+    isTyping,
+    notifyTyping,
+    stopTyping,
   } = useVideoChat();
 
   const [messageInput, setMessageInput] = useState("");
@@ -65,7 +68,13 @@ export default function Home() {
     if (messageInput.trim()) {
       sendMessage(messageInput);
       setMessageInput("");
+      stopTyping(); // Stop typing indicator when message is sent
     }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setMessageInput(e.target.value);
+    notifyTyping(); // Notify the other user that this user is typing
   };
 
   const handleToggleVideo = () => {
@@ -149,7 +158,9 @@ export default function Home() {
                 <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white flex flex-wrap items-center gap-2">
                   VicoChat
                   {isAudioOnly && (
-                    <span className="text-sm sm:text-lg text-blue-400">🎤 Audio</span>
+                    <span className="text-sm sm:text-lg text-blue-400">
+                      🎤 Audio
+                    </span>
                   )}
                 </h1>
                 <p className="text-xs sm:text-sm text-gray-400 hidden sm:block">
@@ -316,30 +327,38 @@ export default function Home() {
                     </div>
                   </div>
                   <div className="absolute -bottom-2 -right-2 sm:-bottom-3 sm:-right-3 backdrop-blur-xl bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-full px-2 py-1 sm:px-4 sm:py-2 shadow-xl border border-white/30 sm:border-2">
-                    <span className="text-white text-[10px] sm:text-xs font-bold">YOU</span>
+                    <span className="text-white text-[10px] sm:text-xs font-bold">
+                      YOU
+                    </span>
                   </div>
                 </div>
               ) : (
                 <div className="w-32 h-24 sm:w-52 sm:h-40 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 rounded-xl sm:rounded-2xl border-2 sm:border-4 border-white/20 shadow-2xl flex items-center justify-center relative backdrop-blur-xl">
                   <div className="text-center">
-                    <span className="text-3xl sm:text-5xl mb-1 sm:mb-2 block">🎤</span>
-                    <p className="text-white text-xs sm:text-sm font-bold">Audio Mode</p>
+                    <span className="text-3xl sm:text-5xl mb-1 sm:mb-2 block">
+                      🎤
+                    </span>
+                    <p className="text-white text-xs sm:text-sm font-bold">
+                      Audio Mode
+                    </p>
                   </div>
                   <div className="absolute -bottom-2 -right-2 sm:-bottom-3 sm:-right-3 backdrop-blur-xl bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-full px-2 py-1 sm:px-4 sm:py-2 shadow-xl border border-white/30 sm:border-2">
-                    <span className="text-white text-[10px] sm:text-xs font-bold">YOU</span>
+                    <span className="text-white text-[10px] sm:text-xs font-bold">
+                      YOU
+                    </span>
                   </div>
                 </div>
               )}
             </div>
 
             {/* Modern Control Panel */}
-            <div className="backdrop-blur-xl bg-white/5 rounded-2xl p-3 sm:p-6 border border-white/10 shadow-2xl">
-              <div className="flex flex-wrap gap-2 sm:gap-3 justify-center items-stretch">
+            <div className="backdrop-blur-xl bg-white/5 rounded-xl sm:rounded-2xl p-2 sm:p-3 md:p-6 border border-white/10 shadow-2xl">
+              <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-3 justify-center items-stretch">
                 {!isConnected && !isWaiting && (
                   <>
                     <button
                       onClick={findPeer}
-                      className="flex-1 basis-full sm:basis-auto sm:flex-none min-w-0 px-4 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-700 hover:to-cyan-700 text-white text-sm sm:text-base font-bold rounded-xl shadow-xl transition-all transform active:scale-95 sm:hover:scale-105 hover:shadow-2xl border border-white/20 flex items-center justify-center gap-2"
+                      className="w-full sm:w-auto px-4 sm:px-8 py-3.5 sm:py-4 bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-700 hover:to-cyan-700 active:from-emerald-800 active:to-cyan-800 text-white text-sm sm:text-base font-bold rounded-xl shadow-xl transition-all transform active:scale-[0.98] sm:hover:scale-105 hover:shadow-2xl border border-white/20 flex items-center justify-center gap-2"
                     >
                       <svg
                         className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0"
@@ -353,7 +372,7 @@ export default function Home() {
 
                     <button
                       onClick={() => setShowRoomInput(!showRoomInput)}
-                      className="flex-1 basis-[45%] sm:basis-auto sm:flex-none min-w-0 px-3 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white text-sm sm:text-base font-bold rounded-xl shadow-xl transition-all transform active:scale-95 sm:hover:scale-105 hover:shadow-2xl border border-white/20 flex items-center justify-center gap-2"
+                      className="w-full sm:w-auto px-3 sm:px-8 py-3.5 sm:py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 active:from-purple-800 active:to-pink-800 text-white text-sm sm:text-base font-bold rounded-xl shadow-xl transition-all transform active:scale-[0.98] sm:hover:scale-105 hover:shadow-2xl border border-white/20 flex items-center justify-center gap-2"
                     >
                       <svg
                         className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0"
@@ -373,7 +392,7 @@ export default function Home() {
 
                     <button
                       onClick={handleCreateRoom}
-                      className="flex-1 basis-[45%] sm:basis-auto sm:flex-none min-w-0 px-3 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-sm sm:text-base font-bold rounded-xl shadow-xl transition-all transform active:scale-95 sm:hover:scale-105 hover:shadow-2xl border border-white/20 flex items-center justify-center gap-2"
+                      className="w-full sm:w-auto px-3 sm:px-8 py-3.5 sm:py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:from-blue-800 active:to-indigo-800 text-white text-sm sm:text-base font-bold rounded-xl shadow-xl transition-all transform active:scale-[0.98] sm:hover:scale-105 hover:shadow-2xl border border-white/20 flex items-center justify-center gap-2"
                     >
                       <svg
                         className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0"
@@ -398,11 +417,11 @@ export default function Home() {
                     {!isAudioOnly && (
                       <button
                         onClick={handleToggleVideo}
-                        className={`flex-1 basis-[30%] sm:basis-auto sm:flex-none min-w-0 px-3 sm:px-6 py-3 sm:py-4 ${
+                        className={`w-full sm:w-auto px-3 sm:px-6 py-3.5 sm:py-4 ${
                           isVideoOn
-                            ? "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-                            : "bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700"
-                        } text-white text-sm sm:text-base font-bold rounded-xl shadow-xl transition-all active:scale-95 sm:hover:scale-105 border border-white/20 flex items-center justify-center gap-1 sm:gap-2`}
+                            ? "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:from-blue-800 active:to-indigo-800"
+                            : "bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 active:from-red-800 active:to-rose-800"
+                        } text-white text-sm sm:text-base font-bold rounded-xl shadow-xl transition-all active:scale-[0.98] sm:hover:scale-105 border border-white/20 flex items-center justify-center gap-2`}
                       >
                         <svg
                           className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0"
@@ -417,18 +436,19 @@ export default function Home() {
                             d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
                           />
                         </svg>
-                        <span className="hidden xs:inline sm:inline">{isVideoOn ? "Video On" : "Video Off"}</span>
-                        <span className="xs:hidden">Video</span>
+                        <span className="whitespace-nowrap">
+                          {isVideoOn ? "Video On" : "Video Off"}
+                        </span>
                       </button>
                     )}
 
                     <button
                       onClick={handleToggleAudio}
-                      className={`flex-1 basis-[30%] sm:basis-auto sm:flex-none min-w-0 px-3 sm:px-6 py-3 sm:py-4 ${
+                      className={`w-full sm:w-auto px-3 sm:px-6 py-3.5 sm:py-4 ${
                         isAudioOn
-                          ? "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700"
-                          : "bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700"
-                      } text-white text-sm sm:text-base font-bold rounded-xl shadow-xl transition-all active:scale-95 sm:hover:scale-105 border border-white/20 flex items-center justify-center gap-1 sm:gap-2`}
+                          ? "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:from-emerald-800 active:to-teal-800"
+                          : "bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 active:from-red-800 active:to-rose-800"
+                      } text-white text-sm sm:text-base font-bold rounded-xl shadow-xl transition-all active:scale-[0.98] sm:hover:scale-105 border border-white/20 flex items-center justify-center gap-2`}
                     >
                       <svg
                         className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0"
@@ -443,13 +463,17 @@ export default function Home() {
                           d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
                         />
                       </svg>
-                      <span className="hidden xs:inline sm:inline">{isAudioOn ? "Mic On" : "Mic Off"}</span>
-                      <span className="xs:hidden">Mic</span>
+                      <span className="whitespace-nowrap">
+                        {isAudioOn ? "Mic On" : "Mic Off"}
+                      </span>
+                      <span className="whitespace-nowrap">
+                        {isAudioOn ? "Mic On" : "Mic Off"}
+                      </span>
                     </button>
 
                     <button
                       onClick={skipPeer}
-                      className="flex-1 basis-[30%] sm:basis-auto sm:flex-none min-w-0 px-3 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white text-sm sm:text-base font-bold rounded-xl shadow-xl transition-all active:scale-95 sm:hover:scale-105 border border-white/20 flex items-center justify-center gap-1 sm:gap-2"
+                      className="w-full sm:w-auto px-3 sm:px-6 py-3.5 sm:py-4 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 active:from-orange-800 active:to-amber-800 text-white text-sm sm:text-base font-bold rounded-xl shadow-xl transition-all active:scale-[0.98] sm:hover:scale-105 border border-white/20 flex items-center justify-center gap-2"
                     >
                       <svg
                         className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0"
@@ -474,7 +498,10 @@ export default function Home() {
             {/* Room Input */}
             {showRoomInput && !isConnected && !isWaiting && (
               <div className="backdrop-blur-xl bg-white/5 rounded-2xl p-3 sm:p-5 shadow-2xl border border-white/10 mt-4">
-                <form onSubmit={handleJoinRoom} className="flex flex-col sm:flex-row gap-3">
+                <form
+                  onSubmit={handleJoinRoom}
+                  className="flex flex-col sm:flex-row gap-3"
+                >
                   <input
                     type="text"
                     value={roomIdInput}
@@ -519,8 +546,12 @@ export default function Home() {
                     </svg>
                   </div>
                   <div>
-                    <h2 className="text-white font-bold text-base sm:text-lg">Chat</h2>
-                    <p className="text-white/70 text-[10px] sm:text-xs hidden sm:block">Send messages</p>
+                    <h2 className="text-white font-bold text-base sm:text-lg">
+                      Chat
+                    </h2>
+                    <p className="text-white/70 text-[10px] sm:text-xs hidden sm:block">
+                      Send messages
+                    </p>
                   </div>
                 </div>
                 {isConnected && (
@@ -579,10 +610,42 @@ export default function Home() {
                       <p className="text-[10px] sm:text-xs font-semibold mb-0.5 sm:mb-1 opacity-70">
                         {msg.sender === "me" ? "You" : "Stranger"}
                       </p>
-                      <p className="break-words text-xs sm:text-sm">{msg.text}</p>
+                      <p className="break-words text-xs sm:text-sm">
+                        {msg.text}
+                      </p>
                     </div>
                   </div>
                 ))}
+
+                {/* Typing Indicator */}
+                {isTyping && isConnected && (
+                  <div className="flex justify-start animate-fade-in">
+                    <div className="max-w-[85%] sm:max-w-[75%] px-3 py-2 sm:px-4 sm:py-3 rounded-xl sm:rounded-2xl shadow-lg backdrop-blur-sm bg-white/10 text-white rounded-bl-md border border-white/10">
+                      <p className="text-[10px] sm:text-xs font-semibold mb-0.5 sm:mb-1 opacity-70">
+                        Stranger
+                      </p>
+                      <div className="flex items-center gap-1">
+                        <div className="flex gap-1">
+                          <span
+                            className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"
+                            style={{ animationDelay: "0ms" }}
+                          ></span>
+                          <span
+                            className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"
+                            style={{ animationDelay: "150ms" }}
+                          ></span>
+                          <span
+                            className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"
+                            style={{ animationDelay: "300ms" }}
+                          ></span>
+                        </div>
+                        <span className="text-xs sm:text-sm text-gray-300 ml-2">
+                          typing...
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Message Input - Modern Style */}
@@ -594,7 +657,7 @@ export default function Home() {
                   <input
                     type="text"
                     value={messageInput}
-                    onChange={(e) => setMessageInput(e.target.value)}
+                    onChange={handleInputChange}
                     placeholder={
                       isConnected
                         ? "Type a message..."
